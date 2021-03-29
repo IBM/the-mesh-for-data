@@ -30,6 +30,10 @@ WITHOUT_PORT_FORWARD=true WITHOUT_VAULT=false make deploy
 # Configure the internal m4d endpoint in vault (the "secret" endpoint)
 WITHOUT_PORT_FORWARD=true make -C secret-provider configure-vault
 
+# Configure Vault kubernetes auth path and add a policy and a role to allow the
+# modules running in m4d-blueprints to access dataset credentials in Vault.
+WITHOUT_PORT_FORWARD=true make configure-vault
+
 make install
 
 # Kill the port-forward
