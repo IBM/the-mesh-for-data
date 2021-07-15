@@ -9,6 +9,15 @@ license: $(TOOLBIN)/license_finder
 docker-mirror-read:
 	$(TOOLS_DIR)/docker_mirror.sh $(TOOLS_DIR)/docker_mirror.conf
 
+.PHONY: m4d
+m4d:    export M4D_VALUES_FILE?=charts/m4d/values.yaml
+m4d:
+	kubectl create namespace m4d-system || true
+	helm install m4d-crd charts/m4d-crd  \
+               --namespace m4d-system --wait --timeout 120s
+	helm install m4d charts/m4d --values $(M4D_VALUES_FILE) \
+               --namespace m4d-system --wait --timeout 120s
+
 .PHONY: test
 test:
 	$(MAKE) -C manager pre-test
@@ -18,17 +27,17 @@ test:
 .PHONY: run-integration-tests
 run-integration-tests: export DOCKER_HOSTNAME?=localhost:5000
 run-integration-tests: export DOCKER_NAMESPACE?=m4d-system
-run-integration-tests: export VALUES_FILE=m4d/integration-tests.values.yaml
+run-integration-tests: export VALUES_FILE=charts/m4d/integration-tests.values.yaml
 run-integration-tests:
 	$(MAKE) kind
-	$(MAKE) -C charts vault
-	$(MAKE) -C charts wait-for-vault
-	$(MAKE) -C charts cert-manager
+	$(MAKE) -C third_party/vault deploy
+	$(MAKE) -C third_party/vault wait-for-vault
+	$(MAKE) -C third_party/cert-manager deploy
 	$(MAKE) -C third_party/datashim deploy
 	$(MAKE) docker
 	$(MAKE) -C test/services docker-build docker-push
 	$(MAKE) cluster-prepare-wait
-	$(MAKE) -C charts m4d
+	$(MAKE) m4d
 	$(MAKE) -C manager wait_for_manager
 	$(MAKE) configure-vault
 	$(MAKE) helm
@@ -52,9 +61,9 @@ run-deploy-tests:
 
 .PHONY: cluster-prepare
 cluster-prepare:
-	$(MAKE) -C charts cert-manager
-	$(MAKE) -C charts vault
-	$(MAKE) -C charts wait-for-vault
+	$(MAKE) -C third_party/cert-manager deploy
+	$(MAKE) -C third_party/vault deploy
+	$(MAKE) -C third_party/vault wait-for-vault
 	$(MAKE) -C third_party/datashim deploy
 
 .PHONY: cluster-prepare-wait
