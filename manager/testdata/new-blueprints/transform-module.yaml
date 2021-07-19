@@ -1,0 +1,40 @@
+# This is an example of a module that configures an already existing arrow-flight service.
+# The configuration happens via the specified helm chart. The helm chart may contain e.g.
+# a configmap with configuration that gets loaded by the service. Or possibly also a pod
+# that executes a curl command to configure the service via REST.
+# This service handles all the actions within the cluster.
+# The helm chart translates between M4D taxonomy (e.g. names of actions) and the service
+# specific syntax.
+# Actions have to be specified in M4D specific taxonomy so that the application controller knows
+# which functionality this module provides. (e.g. it redacts columns and removes columns)
+apiVersion: app.m4d.ibm.com/v1alpha2
+kind: M4DModule
+metadata:
+  name: arrow-flight-common-transform-conf
+  namespace: m4d-system
+  labels:
+    version: 0.0.1
+    name: arrow-flight-common-transform-conf
+spec:
+  chart:
+    name: ghcr.io/mesh-for-data/m4d-arrow-flight-common-transform-conf:0.1.0
+    values: {}
+  statusIndicators:
+  capabilities:
+  - capability: transform
+    scope: dataset
+    source:
+      protocol: m4d-arrow-flight
+      dataformat: arrow
+    actions:
+    - id: redact
+      level: column
+    - id: remove
+      level: column
+  api:
+    endpoint:
+      host: common-transform-arrow-flight  # This can e.g. be used for multi-user modules
+      selector: "mod: common-transform-arrow-flight"
+      port: 80
+    protocol: m4d-arrow-flight
+    dataformat: arrow

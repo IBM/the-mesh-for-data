@@ -1,0 +1,27 @@
+apiVersion: app.m4d.ibm.com/v1alpha2
+kind: M4DModule
+metadata:
+  name: quality-check
+  namespace: m4d-system
+  labels:
+    version: 0.0.1
+    name: quality-check
+spec:
+  chart:
+    name: ghcr.io/mesh-for-data/m4d-quality-check:0.1.0
+  statusIndicators: # Indicators for a K8s job
+  capabilities:
+  - capability: quality-check
+    scope: dataset
+    sources:
+    - protocol: s3
+      dataformat: parquet
+    sinks:
+    - protocol: s3
+      dataformat: csv
+    # The quality check could check various property and produce different
+    # statistics. Thus the output could also be manifold. Statistics could be written to WKC or Kafka.
+    - protocol: wkc
+      dataformat: plaintext
+    - protocol: kafka
+      dataformat: json

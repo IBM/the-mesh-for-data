@@ -1,0 +1,38 @@
+apiVersion: app.m4d.ibm.com/v1alpha2
+kind: M4DModule
+metadata:
+  name: arrow-flight-common-write-conf
+  namespace: m4d-system
+  labels:
+    version: 0.0.1
+    name: arrow-flight-common-write-conf
+spec:
+  description: "This module knows how to configure a cluster wide arrow flight service"
+  # this field is true if this module serves multiple users. Otherwise it
+  # is false. It is used for example when setting the endpoint to
+  # access the module service - if it is a multi-user module then
+  # the service name will be fixed and will be taken from
+  # M4DModule.Capabilities.Api.endpoint.host.
+  confChart:
+    name: ghcr.io/mesh-for-data/afwm:0.1.0
+    values: {}
+  statusIndicators:
+  capabilities:
+  - capability: write
+    scope: dataset
+    source:
+      protocol: s3
+      dataformat: parquet
+  - capability: write
+    scope: dataset
+    source:
+      protocol: s3
+      dataformat: csv
+  api:
+    endpoint:
+      host: common-arrow-flight-write-service  # This can e.g. be used for multi-user modules
+      selector: "mod: common-arrow-flight-write-service"
+      port: 80
+    protocol: m4d-arrow-flight
+    dataformat: arrow
+  actions: []

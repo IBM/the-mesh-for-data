@@ -1,0 +1,37 @@
+apiVersion: app.m4d.ibm.com/v1alpha2
+kind: M4DModule
+metadata:
+  name: credit-card-detector
+  namespace: m4d-system
+  labels:
+    version: 0.0.1
+    name: credit-card-detector
+spec:
+  chart:
+    name: ghcr.io/mesh-for-data/cc-detector:0.1.0
+  statusIndicators: # Indicators for a K8s deployment
+  - kind: Deployment
+    successCondition: # Success condition
+    failureCondition: # Failure condition
+    errorMessage: # Error
+  capabilities:
+  - capability: audit
+    scope: dataset
+    sources:
+    - protocol: m4d-arrow-flight
+      dataformat: arrow
+    sinks:
+    # As this is a fictional module the output may support many formats
+    # Data could be forwarded/logged to another service via arrow-flight, logged to S3
+    # Another possibility is that mail or slack notifications are sent about a
+    # possible security breach in application "demoapp".
+    - protocol: m4d-arrow-flight
+      dataformat: arrow
+    - protocol: s3
+      dataformat: csv
+    - protocol: kafka
+      dataformat: json
+    - protocol: mail
+      dataformat: plaintext
+    - protocol: slack
+      dataformat: plaintext

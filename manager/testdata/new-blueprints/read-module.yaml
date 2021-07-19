@@ -1,0 +1,47 @@
+# This is an example of a module that configures an already existing arrow-flight service.
+# The configuration happens via the specified helm chart. The helm chart may contain e.g.
+# a configmap with configuration that gets loaded by the service. Or possibly also a pod
+# that executes a curl command to configure the service via REST.
+# For this example let's assume that the helm chart deploys config maps that are read by the
+# service. Once the configuration is loaded the service sets a label "configured: SUCCESS" in
+# this configmap. If the service could not be configured the label will be "configured: FAILED".
+# An error message will be set in the 'error' annotation.
+# This service handles all the reads within the cluster.
+apiVersion: app.m4d.ibm.com/v1alpha2
+kind: M4DModule
+metadata:
+  name: arrow-flight-common-read-conf
+  namespace: m4d-system
+  labels:
+    version: 0.0.1
+    name: arrow-flight-common-read-conf
+spec:
+  description: "This module knows how to configure a cluster wide arrow flight service"
+  # this field is true if this module serves multiple users. Otherwise it
+  # is false. It is used for example when setting the endpoint to
+  # access the module service - if it is a multi-user module then
+  # the service name will be fixed and will be taken from
+  # M4DModule.Capabilities.Api.endpoint.host.
+  confChart:
+    name: ghcr.io/mesh-for-data/read-module-conf:0.1.0
+    values: {}
+  statusIndicators:
+  - kind: ConfigMap
+    successCondition: metadata.labels.configured == SUCCEEDED
+    failureCondition: metadata.labels.configured == FAILED
+    errorMessage: metadata.annotations.error
+  capabilities:
+  - capability: read
+    scope: dataset
+    sources:
+    - protocol: s3
+      dataformat: parquet
+    - protocol: s3
+      dataformat: csv
+  api:
+    endpoint:
+      host: common-arrow-flight-read-service  # This can e.g. be used for multi-user services
+      selector: "mod: common-arrow-flight-read-service" # Can be set for multi-user services
+      port: 80 # Mandatory for each service
+    protocol: m4d-arrow-flight
+    dataformat: arrow
