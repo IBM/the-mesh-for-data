@@ -1,5 +1,6 @@
 include Makefile.env
 export DOCKER_TAGNAME ?= latest
+export KUBE_NAMESPACE ?= m4d-system
 
 .PHONY: license
 license: $(TOOLBIN)/license_finder
@@ -9,14 +10,14 @@ license: $(TOOLBIN)/license_finder
 docker-mirror-read:
 	$(TOOLS_DIR)/docker_mirror.sh $(TOOLS_DIR)/docker_mirror.conf
 
-.PHONY: m4d
-m4d:    export M4D_VALUES_FILE?=charts/m4d/values.yaml
-m4d:
-	kubectl create namespace m4d-system || true
-	helm install m4d-crd charts/m4d-crd  \
-               --namespace m4d-system --wait --timeout 120s
-	helm install m4d charts/m4d --values $(M4D_VALUES_FILE) \
-               --namespace m4d-system --wait --timeout 120s
+.PHONY: deploy
+deploy: export M4D_VALUES_FILE?=charts/m4d/values.yaml
+deploy: $(TOOLBIN)/kubectl $(TOOLBIN)/helm
+	$(TOOLBIN)/kubectl create namespace $(KUBE_NAMESPACE) || true
+	$(TOOLBIN)/helm install m4d-crd charts/m4d-crd  \
+               --namespace $(KUBE_NAMESPACE) --wait --timeout 120s
+	$(TOOLBIN)/helm install m4d charts/m4d --values $(M4D_VALUES_FILE) \
+               --namespace $(KUBE_NAMESPACE) --wait --timeout 120s
 
 .PHONY: test
 test:
@@ -37,7 +38,7 @@ run-integration-tests:
 	$(MAKE) docker
 	$(MAKE) -C test/services docker-build docker-push
 	$(MAKE) cluster-prepare-wait
-	$(MAKE) m4d
+	$(MAKE) deploy
 	$(MAKE) -C manager wait_for_manager
 	$(MAKE) configure-vault
 	$(MAKE) helm
@@ -47,7 +48,6 @@ run-integration-tests:
 	$(MAKE) -C modules test
 
 .PHONY: run-deploy-tests
-run-deploy-tests: export KUBE_NAMESPACE?=m4d-system
 run-deploy-tests:
 	$(MAKE) kind
 	$(MAKE) cluster-prepare

@@ -5,7 +5,7 @@ include $(ROOT_DIR)/hack/make-rules/tools.mk
 WITH_OPENSHIFT ?= false
 
 .PHONY: deploy
-deploy:
+deploy: $(TOOLBIN)/kubectl $(TOOLBIN)/helm
 	@echo "Installing cert-manager ..."
 	$(TOOLBIN)/kubectl create namespace cert-manager
 	$(TOOLBIN)/helm repo add jetstack https://charts.jetstack.io

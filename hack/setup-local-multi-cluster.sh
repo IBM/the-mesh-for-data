@@ -18,7 +18,7 @@ make -C third_party/cert-manager deploy
 make -C third_party/datashim deploy
 make docker-minimal-it
 make cluster-prepare-wait
-make m4d
+make deploy
 make vault-setup-kind-multi
 make -C manager wait_for_manager
 make -C modules helm-chart-push
@@ -28,7 +28,7 @@ kubectl config use-context kind-kind
 make -C third_party/cert-manager deploy
 make -C third_party/datashim deploy
 make cluster-prepare-wait
-make m4d
+make deploy
 make -C manager wait_for_manager
 
 # Switch to control cluster after setup

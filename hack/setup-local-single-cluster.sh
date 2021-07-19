@@ -15,7 +15,7 @@ make -C third_party/cert-manager deploy
 make -C third_party/datashim deploy
 make docker-minimal-it
 make cluster-prepare-wait
-make m4d
+make deploy
 make configure-vault
 make -C manager wait_for_manager
 make -C modules helm-chart-push
