@@ -4,9 +4,11 @@
 package v1alpha1
 
 import (
-	"errors"
+	"encoding/json"
 	log "log"
+	"path/filepath"
 
+	"github.com/xeipuuv/gojsonschema"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -40,16 +42,39 @@ func (r *M4DApplication) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *M4DApplication) ValidateDelete() error {
-	log.Printf("Validating m4dapplication %s for deletion", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }
 
 func (r *M4DApplication) validateM4DApplication() error {
-	var allErrs field.ErrorList
-	if err := r.validateM4DApplicationSpec(); err != nil {
-		allErrs = append(allErrs, err...)
+	var allErrs []*field.Error
+
+	// Convert M4D application Go struct to JSON
+	applicationJSON, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+
+	// Validate against strict taxonomy
+	path, err := filepath.Abs("/tmp/taxonomy/application.values.schema.json")
+	if err != nil {
+		return err
+	}
+
+	taxonomyLoader := gojsonschema.NewReferenceLoader("file://" + path)
+	documentLoader := gojsonschema.NewStringLoader(string(applicationJSON))
+	result, err := gojsonschema.Validate(taxonomyLoader, documentLoader)
+	if err != nil {
+		return err
+	}
+
+	if result.Valid() {
+		log.Printf("This M4D application is valid\n")
+	} else {
+		log.Printf("This M4D application is not valid. see errors :\n")
+		for _, desc := range result.Errors() {
+			log.Printf("- %s\n", desc)
+			allErrs = append(allErrs, field.Invalid(field.NewPath(desc.Field()), desc.Value(), desc.Description()))
+		}
 	}
 
 	if len(allErrs) == 0 {
@@ -59,48 +84,4 @@ func (r *M4DApplication) validateM4DApplication() error {
 	return apierrors.NewInvalid(
 		schema.GroupKind{Group: "app.m4d.ibm.com", Kind: "M4DApplication"},
 		r.Name, allErrs)
-}
-
-func (r *M4DApplication) validateM4DApplicationSpec() []*field.Error {
-	// The field helpers from the kubernetes API machinery help us return nicely
-	// structured validation errors.
-
-	var allErrs []*field.Error
-	specField := field.NewPath("spec").Child("data")
-	for i, dataSet := range r.Spec.Data {
-		if err := r.validateDataContext(specField.Index(i), &dataSet); err != nil {
-			allErrs = append(allErrs, err...)
-		}
-	}
-	return allErrs
-}
-
-func (r *M4DApplication) validateDataContext(path *field.Path, dataSet *DataContext) []*field.Error {
-	var allErrs []*field.Error
-	interfacePath := path.Child("Requirements", "Interface")
-	if err := validateProtocol(dataSet.Requirements.Interface.Protocol); err != nil {
-		allErrs = append(allErrs, field.Invalid(interfacePath.Child("Protocol"), &dataSet.Requirements.Interface.Protocol, err.Error()))
-	}
-	if err := validateDataFormat(dataSet.Requirements.Interface.DataFormat); err != nil {
-		allErrs = append(allErrs, field.Invalid(interfacePath.Child("DataFormat"), &dataSet.Requirements.Interface.DataFormat, err.Error()))
-	}
-	return allErrs
-}
-
-func validateProtocol(protocol string) error {
-	switch protocol {
-	case "s3", "kafka", "jdbc-db2", "m4d-arrow-flight":
-		return nil
-	default:
-		return errors.New("Value should be one of these: s3, kafka, jdbc-db2, m4d-arrow-flight")
-	}
-}
-
-func validateDataFormat(format string) error {
-	switch format {
-	case "parquet", "table", "csv", "json", "avro", "orc", "binary", "arrow":
-		return nil
-	default:
-		return errors.New("Value should be one of these: parquet, table, csv, json, avro, orc, binary, arrow")
-	}
 }
